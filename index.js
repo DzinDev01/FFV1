@@ -26,12 +26,39 @@ output: process.stdout
 return new Promise((resolve) => {
 rl.question(text, resolve)
 })};
-//======================
+//====================== 
 async function StartZenn() {
-const { state, saveCreds } = await useMultiFileAuthState('./session')
+const { state, saveCreds } = await useMultiFileAuthState('./session') 
+
+const getMessage = async (key) => {
+		if (store) {
+			const msg = await store.loadMessage(key.remoteJid, key.id);
+			return msg?.message || ''
+		}
+		return {
+			conversation: 'Halo Saya Naze Bot'
+		}
+	}
+	
 const rikz = makeWASocket({
-logger: pino({ level: "silent" }),
-printQRInTerminal: !usePairingCode,
+logger: pino({ level: "silent" }), 
+getMessage, 
+syncFullHistory: true, 
+maxMsgRetryCount: 15, 
+retryRequestDelayMs: 10, 
+connectTimeoutMs: 60000, 
+printQRInTerminal: !usePairingCode, 
+defaultQueryTimeoutMs: undefined,
+generateHighQualityLinkPreview: true, 
+cachedGroupMetadata: async (jid) => groupCache.get(jid), 
+transactionOpts: {
+			maxCommitRetries: 10,
+			delayBetweenTriesMs: 10,
+		},
+		appStateMacVerification: {
+			patch: true,
+			snapshot: true,
+		},
 auth: state,
 browser: [ "Ubuntu", "Chrome", "20.0.04" ]
 });
