@@ -13,7 +13,8 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, makeInMe
 const pino = require('pino');
 const { Boom } = require('@hapi/boom');
 const chalk = require('chalk')
-const readline = require("readline")
+const readline = require("readline") 
+const { toBuffer, toDataURL } = require('qrcode')
 const { smsg, fetchJson, await, sleep } = require('./system/lib/myfunction');
 //======================
 const store = makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) });
@@ -47,7 +48,7 @@ syncFullHistory: true,
 maxMsgRetryCount: 15, 
 retryRequestDelayMs: 10, 
 connectTimeoutMs: 60000, 
-printQRInTerminal: !usePairingCode, 
+printQRInTerminal: true, 
 defaultQueryTimeoutMs: undefined,
 generateHighQualityLinkPreview: true, 
 cachedGroupMetadata: async (jid) => groupCache.get(jid), 
@@ -63,16 +64,10 @@ auth: state,
 browser: [ "Ubuntu", "Chrome", "20.0.04" ]
 });
 //======================
-if (usePairingCode && !rikz.authState.creds.registered) {
-console.log(chalk.cyan("-[ 🔗 Time To Pairing! ]"));
-const phoneNumber = await question(chalk.green("-📞 Enter Your Number Phone::\n"));
-const code = await rikz.requestPairingCode(phoneNumber.trim(), "RYZZZZZZ");
-console.log(chalk.blue(`-✅ Pairing Code: `) + chalk.magenta.bold(code));
-}
 rikz.public = global.publik
 //======================
 rikz.ev.on("connection.update", async (update) => {
-const { connection, lastDisconnect } = update;
+const { qr, connection, lastDisconnect } = update;
 if (connection === "close") {
 const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
 const reconnect = () => StartZenn();
@@ -86,7 +81,13 @@ const reasons = {
 [DisconnectReason.timedOut]: "Koneksi timeout, menghubungkan ulang..."};
 console.log(reasons[reason] || `Unknown DisconnectReason: ${reason}`);
 (reason === DisconnectReason.badSession || reason === DisconnectReason.connectionReplaced) ? rikz() : reconnect()}
-if (connection === "open") {
+if (connection === "open") { 
+if (qr) {
+			app.use('/qr', async (req, res) => {
+				res.setHeader('content-type', 'image/png')
+				res.end(await toBuffer(qr))
+			});
+		}
 let cnnc = `🕒sᴄʀɪᴘᴛ ʙᴇʀʜᴀsɪʟ ᴛᴇʀʜᴜʙᴜɴɢ ᴅᴇᴠ\n> ©ryzz`;
             await console.clear()
 console.log(chalk.red.bold("-[ WhatsApp Terhubung! ]"));
